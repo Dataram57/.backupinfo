@@ -19,23 +19,38 @@ def copy_entire_folder_with_progress(src_folder, dst_parent_folder):
         dst_folder = os.path.join(dst_parent_folder, os.path.basename(src_folder))
 
         # Remove existing destination if it exists
-        if os.path.exists(dst_folder):
-            shutil.rmtree(dst_folder)
+        try:
+            if os.path.exists(dst_folder):
+                shutil.rmtree(dst_folder)
+        except:
+            Log("Failed to remove copy:", src_path, dst_folder)
 
         # Collect all files to copy
         files_to_copy = []
-        for root, dirs, files in os.walk(src_folder):
-            for file in files:
-                full_path = os.path.join(root, file)
-                relative_path = os.path.relpath(full_path, src_folder)
-                files_to_copy.append((full_path, os.path.join(dst_folder, relative_path)))
+        try:
+            for root, dirs, files in os.walk(src_folder):
+                for file in files:
+                    full_path = os.path.join(root, file)
+                    relative_path = os.path.relpath(full_path, src_folder)
+                    files_to_copy.append((full_path, os.path.join(dst_folder, relative_path)))
+        except:
+            Log("Failed to explore:", src_path, dst_folder)
 
         total_files = len(files_to_copy)
         copied_files = 0
 
         for src_path, dst_path in files_to_copy:
-            os.makedirs(os.path.dirname(dst_path), exist_ok=True)
-            shutil.copy2(src_path, dst_path)
+            #
+            try:
+                os.makedirs(os.path.dirname(dst_path), exist_ok=True)
+            except:
+                Log("Failed to make dirs:", src_path, dst_folder)
+            #
+            try:
+                shutil.copy2(src_path, dst_path)
+            except:
+                Log("Failed to copy:", src_path, dst_folder)
+            #
             copied_files += 1
             percent = (copied_files / total_files) * 100
             print(f"\n\rCopying ({copied_files}/{total_files}) [{percent:.2f}%] {src_path} ", end='')
@@ -44,6 +59,14 @@ def copy_entire_folder_with_progress(src_folder, dst_parent_folder):
 
     except Exception as e:
         print(f"\nError accessing {src_folder}: {e}")
+
+def Log(message):
+    global logpath
+    try:
+        with open(logpath, 'a') as f:
+            f.write(message + '\n')
+    except Exception as e:
+        print("Couldn't log,", message)
 
 def GetArg(i):
     if i < 0:
@@ -148,7 +171,12 @@ def CMD_List():
         print(name)
 
 def CMD_Logs():
-    2
+    global logpath
+    try:
+        with open(logpath, 'r') as f:
+            print(f.read())
+    except FileNotFoundError:
+        print("Log file not found.")
 
 def CMD_ClearList():
     global path
