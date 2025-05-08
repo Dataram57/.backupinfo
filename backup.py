@@ -247,21 +247,7 @@ if __name__ == '__main__':
         CMD_Backup(sys.argv[-1])
     #help
     else:
-        print("Commands:")
-        print("")
-        print("mark")
-        print("mark FOLDER_PATH")
-        print("mark FOLDER_PATH MAX_DEPTH")
-        print("")
-        print("list")
-        print("")
-        print("logs")
-        print("")
-        print("clear")
-        print("clear list")
-        print("clear logs")
-        print("")
-        print("backup OUTPUT_PATH")
+        print("\nmark - scans the current directory to find and save paths of directories with .backupinfo files" +"\nmark FOLDER_PATH - scans this FOLDER_PATH to find and save paths of directories with .backupinfo files" + "\nmark FOLDER_PATH MAX_DEPTH - scans this FOLDER_PATH to find and save paths of directories with .backupinfo files, with a max depth scan equal to MAX_DEPTH." + "\n" +"\nlist - lists saved paths with .backupinfo files" + "\n" +"\nlogs - prints logs" +"\n" +"\nclear - clears the list and logs" + "\nclear list - clears the list" + "\nclear logs - clears logs" +"\n" +"\nbackup OUTPUT_PATH - backup directories from the list with paths to them into the OUTPUT_PATH")
         print("")
     #key
     input("Press Enter to continue...")
