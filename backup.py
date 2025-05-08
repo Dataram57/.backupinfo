@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 import sys
 import json
@@ -5,7 +7,7 @@ import json
 depth = 0
 maxDepth = 999
 listedDirs = []
-path = 'list.json'
+path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'list.json')
 spinner = ['|', '/', '-', '\\']
 spinner_i = 0
 
