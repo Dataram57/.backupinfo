@@ -3,13 +3,47 @@
 import os
 import sys
 import json
+import shutil
 
+subDepth = 0
 depth = 0
 maxDepth = 999
 listedDirs = []
 path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'list.json')
+logpath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs.txt')
 spinner = ['|', '/', '-', '\\']
 spinner_i = 0
+
+def copy_entire_folder_with_progress(src_folder, dst_parent_folder):
+    try:
+        dst_folder = os.path.join(dst_parent_folder, os.path.basename(src_folder))
+
+        # Remove existing destination if it exists
+        if os.path.exists(dst_folder):
+            shutil.rmtree(dst_folder)
+
+        # Collect all files to copy
+        files_to_copy = []
+        for root, dirs, files in os.walk(src_folder):
+            for file in files:
+                full_path = os.path.join(root, file)
+                relative_path = os.path.relpath(full_path, src_folder)
+                files_to_copy.append((full_path, os.path.join(dst_folder, relative_path)))
+
+        total_files = len(files_to_copy)
+        copied_files = 0
+
+        for src_path, dst_path in files_to_copy:
+            os.makedirs(os.path.dirname(dst_path), exist_ok=True)
+            shutil.copy2(src_path, dst_path)
+            copied_files += 1
+            percent = (copied_files / total_files) * 100
+            print(f"\n\rCopying ({copied_files}/{total_files}) [{percent:.2f}%] {src_path} ", end='')
+
+        print("\nCopy complete.")
+
+    except Exception as e:
+        print(f"\nError accessing {src_folder}: {e}")
 
 def GetArg(i):
     if i < 0:
@@ -61,7 +95,7 @@ def FindFiles(path):
     global depth
     global listedDirs
     #depth
-    depth = path.count('/') + path.count('\\')
+    depth = path.count('/') + path.count('\\') - subDepth
     if depth > maxDepth:
         return
     
@@ -101,6 +135,9 @@ def FindFiles(path):
 def CMD_Mark(path):
     LoadListDirs()
     path = os.path.abspath(path)
+    global subDepth
+    subDepth = path.count('/') + path.count('\\')
+    print("Scanning", path)
     FindFiles(path)
     SaveListedDirs()
 
@@ -110,13 +147,40 @@ def CMD_List():
     for name in listedDirs:
         print(name)
 
-def CMD_Clear():
+def CMD_Logs():
+    2
+
+def CMD_ClearList():
     global path
     if os.path.exists(path):
         os.remove(path)
 
+def CMD_ClearLogs():
+    global logpath
+    if os.path.exists(logpath):
+        os.remove(logpath)
+
+def CMD_Clear():
+    CMD_ClearList()
+    CMD_ClearLogs()
+
 def CMD_Backup(output):
-    output
+    global listedDirs
+    LoadListDirs()
+    output = os.path.abspath(output)
+    print("")
+    print("Backup will be done at", output)
+    print("It is recommended to format this partition earlier for faster writing.")
+    print("")
+    if input("Type y to continue: ") != "y":
+        return
+    print("")
+    print("Starting copying")
+    print("")
+    for name in listedDirs:
+        print(name)
+        copy_entire_folder_with_progress(name, output)
+
 
 if __name__ == '__main__':
     #mark
@@ -134,7 +198,18 @@ if __name__ == '__main__':
     elif GetArg(-1) == "list":
         print("list")
         CMD_List()
+    #logs
+    elif GetArg(-1) == "logs":
+        print("logs")
+        CMD_Logs()
     #clear
+    elif GetArg(-2) == "clear":
+        if GetArg(-1) == "list":
+            print("clear list")
+            CMD_ClearList()
+        elif GetArg(-1) == "logs":
+            print("clear logs")
+            CMD_ClearLogs()
     elif GetArg(-1) == "clear":
         print("clear")
         CMD_Clear()
@@ -152,7 +227,14 @@ if __name__ == '__main__':
         print("")
         print("list")
         print("")
+        print("logs")
+        print("")
         print("clear")
+        print("clear list")
+        print("clear logs")
         print("")
         print("backup OUTPUT_PATH")
         print("")
+    #key
+    input("Press Enter to continue...")
+
