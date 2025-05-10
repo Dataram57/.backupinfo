@@ -14,51 +14,52 @@ logpath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs.txt')
 spinner = ['|', '/', '-', '\\']
 spinner_i = 0
 
+def get_unique_folder_name(base_folder):
+    """Generate a unique folder name by appending _1, _2, etc. if needed."""
+    counter = 1
+    original_folder = base_folder
+    while os.path.exists(base_folder):
+        base_folder = f"{original_folder}_{counter}"
+        counter += 1
+    return base_folder
+
 def copy_entire_folder_with_progress(src_folder, dst_parent_folder):
     try:
-        dst_folder = os.path.join(dst_parent_folder, os.path.basename(src_folder))
+        # Handle root mount case (like "/" or "C:\")
+        if os.path.ismount(src_folder) or os.path.abspath(src_folder) == os.path.abspath(os.sep):
+            folder_name = "disk"
+        else:
+            folder_name = os.path.basename(os.path.normpath(src_folder))
 
-        # Remove existing destination if it exists
-        try:
-            if os.path.exists(dst_folder):
-                shutil.rmtree(dst_folder)
-        except:
-            Log("Failed to remove copy:", src_path, dst_folder)
+        dst_folder = os.path.join(dst_parent_folder, folder_name)
+        dst_folder = get_unique_folder_name(dst_folder)
 
         # Collect all files to copy
         files_to_copy = []
-        try:
-            for root, dirs, files in os.walk(src_folder):
-                for file in files:
-                    full_path = os.path.join(root, file)
-                    relative_path = os.path.relpath(full_path, src_folder)
-                    files_to_copy.append((full_path, os.path.join(dst_folder, relative_path)))
-        except:
-            Log("Failed to explore:", src_path, dst_folder)
+        for root, dirs, files in os.walk(src_folder):
+            for file in files:
+                full_path = os.path.join(root, file)
+                relative_path = os.path.relpath(full_path, src_folder)
+                target_path = os.path.join(dst_folder, relative_path)
+                files_to_copy.append((full_path, target_path))
 
         total_files = len(files_to_copy)
         copied_files = 0
 
         for src_path, dst_path in files_to_copy:
-            #
             try:
                 os.makedirs(os.path.dirname(dst_path), exist_ok=True)
-            except:
-                Log("Failed to make dirs:", src_path, dst_folder)
-            #
-            try:
                 shutil.copy2(src_path, dst_path)
-            except:
-                Log("Failed to copy:", src_path, dst_folder)
-            #
+            except Exception as e:
+                Log(f"Failed to copy: {src_path} -> {dst_path} ({e})")
             copied_files += 1
             percent = (copied_files / total_files) * 100
-            print(f"\n\rCopying ({copied_files}/{total_files}) [{percent:.2f}%] {src_path} ", end='')
+            print(f"\n\rCopying ({copied_files}/{total_files}) [{percent:.2f}%] {src_path}", end='')
 
         print("\nCopy complete.")
 
     except Exception as e:
-        print(f"\nError accessing {src_folder}: {e}")
+        Log(f"Error copying folder '{src_folder}': {e}")
 
 def Log(message):
     global logpath
@@ -164,20 +165,6 @@ def CMD_Mark(path):
     FindFiles(path)
     SaveListedDirs()
 
-def CMD_List():
-    global listedDirs
-    LoadListDirs()
-    for name in listedDirs:
-        print(name)
-
-def CMD_Logs():
-    global logpath
-    try:
-        with open(logpath, 'r') as f:
-            print(f.read())
-    except FileNotFoundError:
-        print("Log file not found.")
-
 def CMD_ClearList():
     global path
     if os.path.exists(path):
@@ -191,6 +178,20 @@ def CMD_ClearLogs():
 def CMD_Clear():
     CMD_ClearList()
     CMD_ClearLogs()
+
+def CMD_List():
+    global listedDirs
+    LoadListDirs()
+    for name in listedDirs:
+        print(name)
+
+def CMD_Logs():
+    global logpath
+    try:
+        with open(logpath, 'r') as f:
+            print(f.read())
+    except FileNotFoundError:
+        print("Log file not found.")
 
 def CMD_Backup(output):
     global listedDirs
@@ -222,14 +223,6 @@ if __name__ == '__main__':
     elif GetArg(-1) == "mark":
         print("mark")
         CMD_Mark(".")
-    #list
-    elif GetArg(-1) == "list":
-        print("list")
-        CMD_List()
-    #logs
-    elif GetArg(-1) == "logs":
-        print("logs")
-        CMD_Logs()
     #clear
     elif GetArg(-2) == "clear":
         if GetArg(-1) == "list":
@@ -241,6 +234,15 @@ if __name__ == '__main__':
     elif GetArg(-1) == "clear":
         print("clear")
         CMD_Clear()
+    #list
+    elif GetArg(-1) == "list":
+        print("list")
+        CMD_List()
+    #logs
+    elif GetArg(-1) == "logs":
+        print("logs")
+        CMD_Logs()
+
     #backup
     elif GetArg(-2) == "backup":
         print("backup OUTPUT_PATH")
